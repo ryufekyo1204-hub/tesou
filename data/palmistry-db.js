@@ -669,6 +669,22 @@ export const DB = {
       name: "第二火星丘（小指側・中央外縁）",
       high: { label: "高い", meaning: "精神的な強さ・忍耐力・意志の強さ。逆境に屈しない。" },
       normal: { label: "標準", meaning: "適度な精神的強さ。" }
+    },
+    mars_plain: {
+      name: "火星平原（手のひら中央のくぼみ）",
+      description: "第一・第二火星丘の間、手のひら中央に広がる平らな部分。",
+      well_developed: {
+        label: "発達している（ふっくら）",
+        meaning: "行動力とバイタリティが高い。チャレンジ精神旺盛。競争を好む。感情が表に出やすい。"
+      },
+      hollow: {
+        label: "くぼんでいる",
+        meaning: "内省的で繊細。行動より思考を優先。エネルギーを内側に向ける。"
+      },
+      normal: {
+        label: "標準（平ら）",
+        meaning: "バランスのとれた行動力。状況に応じて内外を使い分けられる。"
+      }
     }
   },
 
@@ -788,13 +804,25 @@ export const DB = {
   fingers: {
     thumb: {
       name: "親指（意志力・論理性）",
+      // 全体の長さ
       long: { meaning: "強い意志力と論理的思考。決断力がある。説得力がある。リーダー適性。" },
       short: { meaning: "直感と感情で動く。論理より感覚を優先。" },
+      // 柔軟性
       very_flexible: { meaning: "高い適応力と寛大さ。相手に合わせることが得意。" },
       stiff: { meaning: "頑固で妥協しない。自分のスタイルを貫く強い意志。" },
+      // 先端形状
       wide_tip: { meaning: "（意志型）粘り強く諦めない。" },
       pointed_tip: { meaning: "（鋭感型）直感的で芸術的センスが高い。" },
-      square_tip: { meaning: "（実用型）現実的で秩序を重んじる。" }
+      square_tip: { meaning: "（実用型）現実的で秩序を重んじる。" },
+      // 節の分析（東洋・西洋両方で重視）
+      phalanges: {
+        description: "親指は二節から成る。第一節（爪側）= 意志・実行力、第二節（手のひら側）= 論理・理性。",
+        first_long: { meaning: "実行力と決断力が強い。考えるより先に動くタイプ。" },
+        first_short: { meaning: "慎重に行動する。勢いよりも計画を大切にする。" },
+        second_long: { meaning: "論理的思考力が強い。話術が巧み。説得力がある。" },
+        second_short: { meaning: "論理より感覚・直感で動く。衝動的な面がある。" },
+        balanced: { meaning: "意志と論理のバランスが良い。実行力と計画性を兼ね備える。" }
+      }
     },
     index: {
       name: "人差し指（野心・権威・リーダーシップ）",

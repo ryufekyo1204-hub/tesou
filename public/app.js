@@ -230,6 +230,11 @@ $('analyzeBtn').addEventListener('click', async () => {
 
     renderResult(data);
     showSection('resultSection');
+    // アクセシビリティ: キーボードフォーカスを結果の先頭へ
+    requestAnimationFrame(() => {
+      const title = document.querySelector('#resultSection .result-title');
+      if (title) { title.setAttribute('tabindex', '-1'); title.focus(); }
+    });
   } catch {
     stopLoadingAnimation();
     showError('通信エラーが発生しました。ネットワーク接続を確認してください。');
