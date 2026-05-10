@@ -3,6 +3,7 @@ import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { analyzePalm } from './lib/analyzer.js';
+import { preprocessPalmImage } from './lib/preprocessor.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -34,8 +35,10 @@ app.post('/analyze', upload.single('palm'), async (req, res) => {
   const userSelectedHand = req.body?.hand || 'unclear';
 
   try {
-    const base64 = req.file.buffer.toString('base64');
-    const mediaType = req.file.mimetype;
+    // 画像前処理: コントラスト強調・シャープニングで手相の線を見やすくする
+    const { buffer: processedBuffer, mediaType: processedType } = await preprocessPalmImage(req.file.buffer);
+    const base64 = processedBuffer.toString('base64');
+    const mediaType = processedType || req.file.mimetype;
 
     const result = await analyzePalm(base64, mediaType, userSelectedHand);
     res.json(result);

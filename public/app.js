@@ -135,12 +135,13 @@ let loadingTimer = null;
 function startLoadingAnimation() {
   const steps = [
     { id: 'lStep1', text: '画像の品質を確認中...', delay: 0 },
-    { id: 'lStep2', text: '手相の各線を観察中...', delay: 3500 },
-    { id: 'lStep3', text: 'データベースと照合中...', delay: 9000 },
-    { id: 'lStep4', text: '鑑定結果を生成中...', delay: 16000 },
+    { id: 'lStep2', text: '手相の各線を観察中...', delay: 4000 },
+    { id: 'lStep3', text: 'データベースと照合中...', delay: 12000 },
+    { id: 'lStep4', text: '鑑定結果を生成中...', delay: 22000 },
+    { id: 'lStep5', text: '鑑定結果を最終検証中...', delay: 38000 },
   ];
 
-  ['lStep1','lStep2','lStep3','lStep4'].forEach(id => {
+  ['lStep1','lStep2','lStep3','lStep4','lStep5'].forEach(id => {
     const el = $(id);
     if (el) { el.classList.remove('active', 'done'); }
   });
@@ -185,7 +186,7 @@ function startLoadingAnimation() {
 
 function stopLoadingAnimation() {
   if (loadingTimer) { loadingTimer(); loadingTimer = null; }
-  ['lStep1','lStep2','lStep3','lStep4'].forEach(id => {
+  ['lStep1','lStep2','lStep3','lStep4','lStep5'].forEach(id => {
     const el = $(id);
     if (el) { el.classList.remove('active'); el.classList.add('done'); }
   });
