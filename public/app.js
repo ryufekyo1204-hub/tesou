@@ -1,10 +1,11 @@
-/* 手相鑑定アプリ v3.0 — App Logic */
+/* 手相鑑定アプリ v3.1 — App Logic */
 
 // ============================================================
 // State
 // ============================================================
 let selectedFile = null;
 let selectedHand = 'right';
+let currentPreviewUrl = null; // Object URL リーク防止
 
 // ============================================================
 // DOM helpers
@@ -55,9 +56,13 @@ function handleFile(file) {
   if (!file?.type.startsWith('image/')) return;
   selectedFile = file;
 
-  const url = URL.createObjectURL(file);
-  $('previewImage').src = url;
-  $('resultThumb').src = url;
+  // 古いObject URLを解放してからメモリリークを防ぐ
+  if (currentPreviewUrl) {
+    URL.revokeObjectURL(currentPreviewUrl);
+  }
+  currentPreviewUrl = URL.createObjectURL(file);
+  $('previewImage').src = currentPreviewUrl;
+  $('resultThumb').src = currentPreviewUrl;
 
   showSection('previewSection');
 }
@@ -92,6 +97,13 @@ function resetToUpload() {
   selectedFile = null;
   $('cameraInput').value = '';
   $('galleryInput').value = '';
+  // 手の選択をデフォルト（右手）にリセット
+  selectedHand = 'right';
+  document.querySelectorAll('.hand-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.hand === 'right');
+    b.setAttribute('aria-pressed', String(b.dataset.hand === 'right'));
+  });
+  $('handHint').textContent = HAND_HINTS['right'];
   showSection('uploadSection');
 }
 
@@ -148,7 +160,22 @@ function startLoadingAnimation() {
     timers.push(t);
   });
 
-  loadingTimer = () => timers.forEach(clearTimeout);
+  // 全ステップ完了後も処理中であることを示す継続フィードバック
+  const waitMessages = ['AIが詳しく解析しています...', '手相の細部を確認しています...', 'もうすぐ完成します...'];
+  let waitIdx = 0;
+  const waitTimer = setInterval(() => {
+    waitIdx = (waitIdx + 1) % waitMessages.length;
+    const mainText = $('loadingMainText');
+    if (mainText) mainText.textContent = waitMessages[waitIdx];
+  }, 7000);
+  timers.push({ cancel: () => clearInterval(waitTimer) });
+
+  loadingTimer = () => {
+    timers.forEach(t => {
+      if (typeof t === 'number') clearTimeout(t);
+      else if (t?.cancel) t.cancel();
+    });
+  };
 }
 
 function stopLoadingAnimation() {
@@ -176,7 +203,18 @@ $('analyzeBtn').addEventListener('click', async () => {
     formData.append('hand', selectedHand);
 
     const res = await fetch('/analyze', { method: 'POST', body: formData });
-    const data = await res.json();
+
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      // サーバーがHTMLエラーページを返した場合（MulterError等）
+      stopLoadingAnimation();
+      showError(res.status === 413
+        ? '画像ファイルが大きすぎます（最大20MB）。別の画像でお試しください。'
+        : 'サーバーエラーが発生しました。再度お試しください。');
+      return;
+    }
 
     stopLoadingAnimation();
 
@@ -319,8 +357,8 @@ function renderLines(lines) {
     const detailHTML = detailItems.length > 0
       ? `<div class="line-detail-row">${detailItems.slice(0, 2).map(d => `
           <div class="line-detail-item">
-            <div class="detail-label">${d.label}</div>
-            <div class="detail-value">${d.value}</div>
+            <div class="detail-label">${escHtml(d.label)}</div>
+            <div class="detail-value">${escHtml(d.value)}</div>
           </div>`).join('')}</div>`
       : '';
 
@@ -330,7 +368,7 @@ function renderLines(lines) {
 
     card.innerHTML = `
       <div class="line-card-header">
-        <span class="line-emoji">${line.emoji || '✦'}</span>
+        <span class="line-emoji">${escHtml(line.emoji || '✦')}</span>
         <span class="line-name">${escHtml(line.title || '')}</span>
         <span class="${confidenceClass(conf)}">${confidenceLabel(conf)}</span>
       </div>
@@ -421,7 +459,9 @@ function renderLucky(lucky) {
 // ============================================================
 function setText(id, text) {
   const el = $(id);
-  if (el && text) el.textContent = text;
+  if (!el) return;
+  // text が falsy でも空文字ならクリアする（前回の結果が残らないように）
+  el.textContent = text != null ? text : '';
 }
 
 function escHtml(str) {

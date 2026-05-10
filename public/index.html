@@ -62,7 +62,7 @@
           <span aria-hidden="true">📸</span>
           <span>カメラで撮影</span>
         </label>
-        <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden aria-label="カメラで撮影">
+        <input type="file" id="cameraInput" accept="image/*" hidden aria-label="カメラで撮影">
 
         <label class="btn btn-outline" for="galleryInput" role="button" tabindex="0">
           <span aria-hidden="true">🖼️</span>
@@ -135,19 +135,19 @@
 
         <div class="loading-steps-container" aria-label="分析の進捗">
           <div class="load-step" id="lStep1" role="status">
-            <span class="step-icon">○</span>
+            <span class="step-icon" aria-hidden="true"></span>
             <span>画像品質を確認中</span>
           </div>
           <div class="load-step" id="lStep2" role="status">
-            <span class="step-icon">○</span>
+            <span class="step-icon" aria-hidden="true"></span>
             <span>手相の各線を観察中</span>
           </div>
           <div class="load-step" id="lStep3" role="status">
-            <span class="step-icon">○</span>
+            <span class="step-icon" aria-hidden="true"></span>
             <span>データベースと照合中</span>
           </div>
           <div class="load-step" id="lStep4" role="status">
-            <span class="step-icon">○</span>
+            <span class="step-icon" aria-hidden="true"></span>
             <span>鑑定結果を生成中</span>
           </div>
         </div>
@@ -275,9 +275,13 @@
       </div>
 
       <!-- Disclaimer -->
-      <p class="disclaimer">
-        ※ この鑑定はAIによるエンターテインメント目的のコンテンツです。医療診断の代替ではありません。
-      </p>
+      <div class="disclaimer-box">
+        <p class="disclaimer-text">
+          ⚠️ この鑑定はAIによるエンターテインメント・自己洞察目的のコンテンツです。<br>
+          医療診断・投資・法的判断の代替として使用しないでください。<br>
+          <small>※ 画像はAnthropicのAPIを経由して処理されます。サーバーには保存されません。</small>
+        </p>
+      </div>
     </section>
 
     <!-- ===== ERROR SECTION ===== -->
