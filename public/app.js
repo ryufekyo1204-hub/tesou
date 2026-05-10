@@ -160,21 +160,26 @@ function startLoadingAnimation() {
     timers.push(t);
   });
 
-  // 全ステップ完了後も処理中であることを示す継続フィードバック
+  // 全ステップ完了後（最終ステップの delay + 5s）に継続フィードバックを開始
+  // 即時開始するとステップメッセージと競合するため遅延させる
+  const WAIT_START = steps[steps.length - 1].delay + 5000;
   const waitMessages = ['AIが詳しく解析しています...', '手相の細部を確認しています...', 'もうすぐ完成します...'];
   let waitIdx = 0;
-  const waitTimer = setInterval(() => {
-    waitIdx = (waitIdx + 1) % waitMessages.length;
-    const mainText = $('loadingMainText');
-    if (mainText) mainText.textContent = waitMessages[waitIdx];
-  }, 7000);
-  timers.push({ cancel: () => clearInterval(waitTimer) });
+  let waitIntervalId = null;
+
+  const waitStartTimer = setTimeout(() => {
+    waitIntervalId = setInterval(() => {
+      waitIdx = (waitIdx + 1) % waitMessages.length;
+      const mainText = $('loadingMainText');
+      if (mainText) mainText.textContent = waitMessages[waitIdx];
+    }, 7000);
+  }, WAIT_START);
+
+  timers.push(waitStartTimer);
 
   loadingTimer = () => {
-    timers.forEach(t => {
-      if (typeof t === 'number') clearTimeout(t);
-      else if (t?.cancel) t.cancel();
-    });
+    timers.forEach(t => clearTimeout(t));
+    if (waitIntervalId) clearInterval(waitIntervalId);
   };
 }
 
