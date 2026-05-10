@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#0f0a1e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>手相鑑定 - AI手相占い</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="stars"></div>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <span class="header-icon">🔮</span>
+      <h1 class="app-title">手相鑑定</h1>
+      <p class="app-subtitle">AI による手相自動分析</p>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <!-- Upload Section -->
+    <section class="upload-section" id="uploadSection">
+      <div class="palm-illustration">
+        <svg viewBox="0 0 120 160" fill="none" xmlns="http://www.w3.org/2000/svg" class="palm-svg">
+          <path d="M60 140 C35 140 20 120 20 95 L20 55 C20 48 26 42 33 42 C35 42 37 43 39 44 L39 30 C39 23 44 18 51 18 C55 18 58 20 60 23 C62 20 65 18 69 18 C76 18 81 23 81 30 L81 32 C83 30 86 29 89 29 C96 29 101 34 101 41 L101 55 C104 57 106 61 106 65 L106 95 C106 120 91 140 66 140 Z" fill="url(#palmGrad)" opacity="0.3"/>
+          <path d="M60 140 C35 140 20 120 20 95 L20 55 C20 48 26 42 33 42 C35 42 37 43 39 44 L39 30 C39 23 44 18 51 18 C55 18 58 20 60 23 C62 20 65 18 69 18 C76 18 81 23 81 30 L81 32 C83 30 86 29 89 29 C96 29 101 34 101 41 L101 55 C104 57 106 61 106 65 L106 95 C106 120 91 140 66 140 Z" stroke="url(#lineGrad)" stroke-width="1.5" fill="none"/>
+          <!-- Life line -->
+          <path d="M45 130 C42 110 38 85 40 65 C42 50 50 42 55 40" stroke="#4ade80" stroke-width="1.5" fill="none" opacity="0.8"/>
+          <!-- Heart line -->
+          <path d="M30 75 C40 70 60 68 80 72 C90 74 95 78 98 80" stroke="#f472b6" stroke-width="1.5" fill="none" opacity="0.8"/>
+          <!-- Head line -->
+          <path d="M30 90 C45 88 65 87 85 90 C90 91 94 93 96 95" stroke="#60a5fa" stroke-width="1.5" fill="none" opacity="0.8"/>
+          <!-- Fate line -->
+          <path d="M60 140 C60 120 60 100 62 80 C63 70 65 60 68 52" stroke="#fbbf24" stroke-width="1.2" fill="none" opacity="0.6" stroke-dasharray="3,2"/>
+          <defs>
+            <linearGradient id="palmGrad" x1="20" y1="18" x2="106" y2="140" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#a78bfa"/>
+              <stop offset="100%" stop-color="#6d28d9"/>
+            </linearGradient>
+            <linearGradient id="lineGrad" x1="20" y1="18" x2="106" y2="140" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#c4b5fd"/>
+              <stop offset="100%" stop-color="#7c3aed"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      <p class="upload-hint">手のひらを撮影または画像を選択してください</p>
+
+      <div class="btn-group">
+        <label class="btn btn-primary" for="cameraInput">
+          <span class="btn-icon">📸</span>
+          <span>カメラで撮影</span>
+        </label>
+        <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+
+        <label class="btn btn-secondary" for="galleryInput">
+          <span class="btn-icon">🖼️</span>
+          <span>ギャラリーから選択</span>
+        </label>
+        <input type="file" id="galleryInput" accept="image/*" hidden>
+      </div>
+
+      <div class="tips-box">
+        <p class="tips-title">✨ 上手な撮影のコツ</p>
+        <ul class="tips-list">
+          <li>明るい場所で手のひらを広げて</li>
+          <li>カメラを真上からまっすぐ向けて</li>
+          <li>指をリラックスして自然に広げて</li>
+          <li>ブレないようにしっかり固定して</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Preview Section -->
+    <section class="preview-section hidden" id="previewSection">
+      <div class="preview-wrapper">
+        <img id="previewImage" src="" alt="手相プレビュー" class="preview-img">
+        <button class="retake-btn" id="retakeBtn">撮り直す</button>
+      </div>
+      <button class="btn btn-analyze" id="analyzeBtn">
+        <span class="btn-icon">🔮</span>
+        <span>手相を鑑定する</span>
+      </button>
+    </section>
+
+    <!-- Loading Section -->
+    <section class="loading-section hidden" id="loadingSection">
+      <div class="crystal-ball">
+        <div class="crystal-glow"></div>
+        <span class="crystal-emoji">🔮</span>
+      </div>
+      <p class="loading-text" id="loadingText">手相を読み取り中...</p>
+      <div class="loading-steps">
+        <div class="step" id="step1">✓ 画像を解析中</div>
+        <div class="step" id="step2">✓ 手相の線を特定中</div>
+        <div class="step" id="step3">✓ 運勢を鑑定中</div>
+      </div>
+    </section>
+
+    <!-- Result Section -->
+    <section class="result-section hidden" id="resultSection">
+      <div class="result-header">
+        <h2 class="result-title">🔮 鑑定結果</h2>
+        <div class="preview-thumb-wrapper">
+          <img id="resultThumb" src="" alt="" class="preview-thumb">
+        </div>
+      </div>
+
+      <!-- Overall -->
+      <div class="card card-overall">
+        <h3 class="card-title">✨ 総合鑑定</h3>
+        <p class="card-text" id="overallText"></p>
+        <p class="card-subtext personality-text" id="personalityText"></p>
+      </div>
+
+      <!-- Lines -->
+      <div class="lines-grid" id="linesGrid"></div>
+
+      <!-- Special & Year Fortune -->
+      <div class="card card-special">
+        <h3 class="card-title">🌟 特別な印</h3>
+        <p class="card-text" id="specialText"></p>
+      </div>
+
+      <div class="card card-year">
+        <h3 class="card-title">📅 今年の運勢</h3>
+        <p class="card-text" id="yearText"></p>
+      </div>
+
+      <!-- Advice -->
+      <div class="card card-advice">
+        <h3 class="card-title">💫 総合アドバイス</h3>
+        <p class="card-text" id="adviceText"></p>
+      </div>
+
+      <!-- Lucky Items -->
+      <div class="card card-lucky">
+        <h3 class="card-title">🍀 ラッキーアイテム</h3>
+        <div class="lucky-grid" id="luckyGrid"></div>
+      </div>
+
+      <button class="btn btn-secondary btn-retake" id="retakeBtn2">
+        <span>もう一度鑑定する</span>
+      </button>
+    </section>
+
+    <!-- Error Section -->
+    <section class="error-section hidden" id="errorSection">
+      <div class="error-icon">😔</div>
+      <p class="error-text" id="errorText"></p>
+      <button class="btn btn-secondary" id="errorRetryBtn">やり直す</button>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
