@@ -2,8 +2,19 @@ import express from 'express';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { randomUUID } from 'crypto';
 import { analyzePalm, analyzeComparison } from './lib/analyzer.js';
 import { preprocessPalmImage } from './lib/preprocessor.js';
+
+// 共有データの一時保存（メモリ内・24時間TTL）
+const shareStore = new Map();
+function cleanupExpiredShares() {
+  const now = Date.now();
+  for (const [id, entry] of shareStore) {
+    if (entry.expires < now) shareStore.delete(id);
+  }
+}
+setInterval(cleanupExpiredShares, 60 * 60 * 1000); // 1時間ごとにクリーンアップ
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -35,14 +46,15 @@ app.post('/analyze', upload.single('palm'), async (req, res) => {
   const userSelectedHand = req.body?.hand || 'unclear';
   const theme = req.body?.theme || 'overall';
   const customQuestion = (req.body?.customQuestion || '').trim().slice(0, 100);
+  const userAge = (req.body?.userAge || '').trim().slice(0, 3);
+  const userGender = (req.body?.userGender || '').trim();
 
   try {
-    // 画像前処理: コントラスト強調・シャープニングで手相の線を見やすくする
     const { buffer: processedBuffer, mediaType: processedType } = await preprocessPalmImage(req.file.buffer);
     const base64 = processedBuffer.toString('base64');
     const mediaType = processedType || req.file.mimetype;
 
-    const result = await analyzePalm(base64, mediaType, userSelectedHand, theme, customQuestion);
+    const result = await analyzePalm(base64, mediaType, userSelectedHand, theme, customQuestion, userAge, userGender);
     res.json(result);
   } catch (err) {
     console.error('Analysis error:', err.message);
@@ -55,6 +67,33 @@ app.post('/analyze', upload.single('palm'), async (req, res) => {
     }
     res.status(500).json({ error: true, message: err.message || '分析中にエラーが発生しました。再度お試しください。' });
   }
+});
+
+// ===== 共有エンドポイント =====
+app.use(express.json({ limit: '2mb' }));
+
+app.post('/share', (req, res) => {
+  const data = req.body;
+  if (!data?.interpretation && !data?.comparison) {
+    return res.status(400).json({ error: true, message: '無効なデータです' });
+  }
+  cleanupExpiredShares();
+  if (shareStore.size >= 500) {
+    // 古いエントリを強制削除
+    const oldest = [...shareStore.entries()].sort((a, b) => a[1].expires - b[1].expires)[0];
+    if (oldest) shareStore.delete(oldest[0]);
+  }
+  const id = randomUUID();
+  shareStore.set(id, { data, expires: Date.now() + 24 * 60 * 60 * 1000 });
+  res.json({ shareId: id });
+});
+
+app.get('/share/:id', (req, res) => {
+  const entry = shareStore.get(req.params.id);
+  if (!entry || entry.expires < Date.now()) {
+    return res.status(404).json({ error: true, message: '共有リンクが見つからないか期限切れです（有効期限: 24時間）' });
+  }
+  res.json(entry.data);
 });
 
 // ===== 両手比較エンドポイント =====

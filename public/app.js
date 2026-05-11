@@ -12,6 +12,9 @@ let compRightFile = null;
 let compLeftFile = null;
 let compRightUrl = null;
 let compLeftUrl = null;
+let userGender = 'unspecified';
+let userAge = '';
+let lastResultData = null;
 
 // ============================================================
 // DOM helpers
@@ -144,6 +147,25 @@ reattachCompInput('rightPalmInput');
 reattachCompInput('leftPalmInput');
 
 // ============================================================
+// Profile (gender / age)
+// ============================================================
+document.querySelectorAll('.profile-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    userGender = btn.dataset.gender;
+    document.querySelectorAll('.profile-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.gender === userGender);
+    });
+  });
+});
+
+const ageInputEl = $('ageInput');
+if (ageInputEl) {
+  ageInputEl.addEventListener('input', () => {
+    userAge = ageInputEl.value.trim();
+  });
+}
+
+// ============================================================
 // Theme selector
 // ============================================================
 document.querySelectorAll('.theme-btn').forEach(btn => {
@@ -183,13 +205,18 @@ function resetToUpload() {
   selectedFile = null;
   $('cameraInput').value = '';
   $('galleryInput').value = '';
-  // 手の選択をデフォルト（右手）にリセット
   selectedHand = 'right';
   document.querySelectorAll('.hand-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.hand === 'right');
     b.setAttribute('aria-pressed', String(b.dataset.hand === 'right'));
   });
   $('handHint').textContent = HAND_HINTS['right'];
+  userGender = 'unspecified';
+  document.querySelectorAll('.profile-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.gender === 'unspecified');
+  });
+  userAge = '';
+  if ($('ageInput')) $('ageInput').value = '';
   showSection('uploadSection');
 }
 
@@ -217,6 +244,8 @@ $('compAnalyzeBtn').addEventListener('click', async () => {
     formData.append('left_palm', leftComp, 'left.jpg');
     formData.append('theme', selectedTheme);
     formData.append('customQuestion', $('customQuestion')?.value?.trim() || '');
+    formData.append('userAge', userAge);
+    formData.append('userGender', userGender);
 
     const res = await fetch('/analyze-comparison', { method: 'POST', body: formData });
     let data;
@@ -339,6 +368,8 @@ $('analyzeBtn').addEventListener('click', async () => {
     formData.append('hand', selectedHand);
     formData.append('theme', selectedTheme);
     formData.append('customQuestion', $('customQuestion')?.value?.trim() || '');
+    formData.append('userAge', userAge);
+    formData.append('userGender', userGender);
 
     const res = await fetch('/analyze', { method: 'POST', body: formData });
 
@@ -361,9 +392,11 @@ $('analyzeBtn').addEventListener('click', async () => {
       return;
     }
 
+    lastResultData = data;
     renderResult(data);
+    saveToHistory(data);
+    renderHistory();
     showSection('resultSection');
-    // アクセシビリティ: キーボードフォーカスを結果の先頭へ
     requestAnimationFrame(() => {
       const title = document.querySelector('#resultSection .result-title');
       if (title) { title.setAttribute('tabindex', '-1'); title.focus(); }
@@ -473,11 +506,53 @@ function renderResult(data) {
     cqCard.classList.add('hidden');
   }
 
+  // Theme focus
+  renderThemeFocus(r.theme_focus);
+
   // Lucky
   renderLucky(r.lucky);
 
   // Closing
   setText('closingText', r.closing);
+}
+
+// ---- Theme Focus ----
+const THEME_FOCUS_LABELS = {
+  attraction_type: '魅力のタイプ',
+  relationship_pattern: '恋愛パターン',
+  ideal_partner: '理想のパートナー',
+  timing: 'タイミング',
+  action: '行動アドバイス',
+  work_style: '仕事スタイル',
+  strength: '強み',
+  career_path: 'キャリアパス',
+  caution: '注意点',
+  vitality: '活力レベル',
+  stress_pattern: 'ストレスパターン',
+  health_advice: '健康アドバイス',
+  wellness_tip: 'ウェルネスのヒント',
+};
+
+const THEME_FOCUS_ICONS = { love: '💕', career: '💼', health: '🌿' };
+
+function renderThemeFocus(tf) {
+  const card = $('themeFocusCard');
+  if (!card) return;
+  if (!tf) { card.classList.add('hidden'); return; }
+
+  $('themeFocusIcon').textContent = THEME_FOCUS_ICONS[selectedTheme] || '🔍';
+  setText('themeFocusTitle', tf.label || 'テーマ別詳細分析');
+
+  const content = $('themeFocusContent');
+  content.innerHTML = '';
+  Object.entries(tf).forEach(([key, value]) => {
+    if (key === 'label' || !value) return;
+    const item = document.createElement('div');
+    item.className = 'theme-focus-item';
+    item.innerHTML = `<span class="theme-focus-key">${escHtml(THEME_FOCUS_LABELS[key] || key)}</span><span class="theme-focus-val">${escHtml(String(value))}</span>`;
+    content.appendChild(item);
+  });
+  card.classList.remove('hidden');
 }
 
 // ---- Lines ----
@@ -654,6 +729,101 @@ function renderComparisonResult(data) {
     : '';
 }
 
+// ============================================================
+// Share URL
+// ============================================================
+$('shareUrlBtn').addEventListener('click', async () => {
+  if (!lastResultData) return;
+  const btn = $('shareUrlBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(lastResultData),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.shareId) throw new Error('share failed');
+    const url = `${location.origin}?share=${json.shareId}`;
+    try { await navigator.clipboard.writeText(url); } catch { /* fallback omit */ }
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ コピーしました';
+    setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 2000);
+    return;
+  } catch {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '⚠ エラー';
+    setTimeout(() => { btn.innerHTML = orig; }, 2000);
+  }
+  btn.disabled = false;
+});
+
+// ============================================================
+// History (localStorage)
+// ============================================================
+const HISTORY_KEY = 'tesou_history';
+const HISTORY_MAX = 5;
+const THEME_LABELS_MAP = { overall: '総合', love: '恋愛', career: '仕事', health: '健康' };
+const HAND_LABELS_MAP = { right: '右手', left: '左手', unclear: '不明' };
+
+function saveToHistory(data) {
+  try {
+    const history = loadHistory();
+    history.unshift({
+      id: Date.now(),
+      date: new Date().toLocaleString('ja-JP'),
+      theme: selectedTheme,
+      hand: selectedHand,
+      data,
+    });
+    if (history.length > HISTORY_MAX) history.length = HISTORY_MAX;
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch { /* storage unavailable */ }
+}
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function renderHistory() {
+  const section = $('historySection');
+  const listEl = $('historyList');
+  if (!section || !listEl) return;
+  const history = loadHistory();
+  if (history.length === 0) { section.classList.add('hidden'); return; }
+  listEl.innerHTML = '';
+  history.forEach(entry => {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    const opening = entry.data?.interpretation?.opening || '鑑定結果';
+    const preview = opening.length > 60 ? opening.slice(0, 60) + '…' : opening;
+    item.innerHTML = `
+      <div class="history-item-date">${escHtml(entry.date)}</div>
+      <div class="history-item-opening">${escHtml(preview)}</div>
+      <div class="history-item-meta">
+        <span class="history-meta-chip">${escHtml(THEME_LABELS_MAP[entry.theme] || entry.theme)}</span>
+        <span class="history-meta-chip">${escHtml(HAND_LABELS_MAP[entry.hand] || entry.hand)}</span>
+      </div>`;
+    item.addEventListener('click', () => {
+      lastResultData = entry.data;
+      selectedTheme = entry.theme || 'overall';
+      renderResult(entry.data);
+      showSection('resultSection');
+    });
+    listEl.appendChild(item);
+  });
+  section.classList.remove('hidden');
+}
+
+const historyClearBtn = $('historyClearBtn');
+if (historyClearBtn) {
+  historyClearBtn.addEventListener('click', () => {
+    localStorage.removeItem(HISTORY_KEY);
+    renderHistory();
+  });
+}
+
 $('compShareBtn').addEventListener('click', async () => {
   const text = `🤲 AI両手比較手相鑑定を体験しました！\n右手と左手を読み解いて、潜在能力と現在の自分を比較鑑定。\nあなたも試してみて！`;
   if (navigator.share) {
@@ -684,3 +854,28 @@ function escHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+
+// ============================================================
+// Init: shared result via URL or show history
+// ============================================================
+(async () => {
+  const shareId = new URLSearchParams(location.search).get('share');
+  if (shareId) {
+    showSection('loadingSection');
+    try {
+      const res = await fetch(`/share/${shareId}`);
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        showError(data.message || '共有リンクが見つかりません。');
+        return;
+      }
+      lastResultData = data;
+      renderResult(data);
+      showSection('resultSection');
+    } catch {
+      showError('共有リンクの読み込みに失敗しました。');
+    }
+  } else {
+    renderHistory();
+  }
+})();

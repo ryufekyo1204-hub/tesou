@@ -113,6 +113,15 @@
       </div>
 
       <p class="privacy-note">🔒 画像はAI分析にのみ使用され、保存されません</p>
+
+      <!-- 履歴セクション -->
+      <div class="history-section hidden" id="historySection">
+        <div class="history-header">
+          <h3 class="history-title">📜 過去の鑑定</h3>
+          <button class="history-clear-btn" id="historyClearBtn">すべて削除</button>
+        </div>
+        <div class="history-list" id="historyList"></div>
+      </div>
     </section>
 
     <!-- ===== PREVIEW SECTION ===== -->
@@ -140,6 +149,23 @@
             </button>
           </div>
           <p class="hand-hint" id="handHint">右手：現在・努力・これからの人生を示します</p>
+        </div>
+      </div>
+
+      <!-- プロフィール（性別・年齢） -->
+      <div class="profile-row">
+        <div class="profile-field">
+          <p class="profile-label">性別</p>
+          <div class="profile-btns" id="genderBtns">
+            <button class="profile-btn active" data-gender="unspecified">未回答</button>
+            <button class="profile-btn" data-gender="male">男性</button>
+            <button class="profile-btn" data-gender="female">女性</button>
+            <button class="profile-btn" data-gender="other">その他</button>
+          </div>
+        </div>
+        <div class="profile-field">
+          <label class="profile-label" for="ageInput">年齢</label>
+          <input type="number" id="ageInput" class="age-input" min="10" max="99" placeholder="歳">
         </div>
       </div>
 
@@ -242,6 +268,15 @@
         <div class="life-theme-badge" id="lifeTheme"></div>
       </div>
 
+      <!-- Theme Focus (恋愛/仕事/健康 深堀り) -->
+      <div class="card card-theme-focus fade-in-up hidden" id="themeFocusCard" style="animation-delay:0.12s">
+        <div class="card-header">
+          <span class="card-icon" id="themeFocusIcon" aria-hidden="true"></span>
+          <h3 class="card-title" id="themeFocusTitle"></h3>
+        </div>
+        <div id="themeFocusContent"></div>
+      </div>
+
       <!-- Lines Section -->
       <h3 class="section-label">手相の各線</h3>
       <div class="lines-container" id="linesContainer"></div>
@@ -330,10 +365,13 @@
       <!-- Action Buttons -->
       <div class="result-actions">
         <button class="btn btn-outline" id="retakeBtn2">
-          <span aria-hidden="true">🔄</span> もう一度鑑定する
+          <span aria-hidden="true">🔄</span> もう一度
+        </button>
+        <button class="btn btn-outline" id="shareUrlBtn">
+          <span aria-hidden="true">🔗</span> URLをコピー
         </button>
         <button class="btn btn-share" id="shareBtn">
-          <span aria-hidden="true">📤</span> 結果をシェア
+          <span aria-hidden="true">📤</span> シェア
         </button>
       </div>
 
