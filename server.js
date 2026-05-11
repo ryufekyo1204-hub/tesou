@@ -34,6 +34,7 @@ app.post('/analyze', upload.single('palm'), async (req, res) => {
 
   const userSelectedHand = req.body?.hand || 'unclear';
   const theme = req.body?.theme || 'overall';
+  const customQuestion = (req.body?.customQuestion || '').trim().slice(0, 100);
 
   try {
     // 画像前処理: コントラスト強調・シャープニングで手相の線を見やすくする
@@ -41,7 +42,7 @@ app.post('/analyze', upload.single('palm'), async (req, res) => {
     const base64 = processedBuffer.toString('base64');
     const mediaType = processedType || req.file.mimetype;
 
-    const result = await analyzePalm(base64, mediaType, userSelectedHand, theme);
+    const result = await analyzePalm(base64, mediaType, userSelectedHand, theme, customQuestion);
     res.json(result);
   } catch (err) {
     console.error('Analysis error:', err.message);
@@ -70,6 +71,7 @@ app.post('/analyze-comparison', compUpload, async (req, res) => {
   }
 
   const theme = req.body?.theme || 'overall';
+  const customQuestion = (req.body?.customQuestion || '').trim().slice(0, 100);
 
   try {
     const [rPre, lPre] = await Promise.all([
@@ -79,7 +81,7 @@ app.post('/analyze-comparison', compUpload, async (req, res) => {
     const result = await analyzeComparison(
       rPre.buffer.toString('base64'), rPre.mediaType || rightFile.mimetype,
       lPre.buffer.toString('base64'), lPre.mediaType || leftFile.mimetype,
-      theme
+      theme, customQuestion
     );
     res.json(result);
   } catch (err) {

@@ -216,6 +216,7 @@ $('compAnalyzeBtn').addEventListener('click', async () => {
     formData.append('right_palm', rightComp, 'right.jpg');
     formData.append('left_palm', leftComp, 'left.jpg');
     formData.append('theme', selectedTheme);
+    formData.append('customQuestion', $('customQuestion')?.value?.trim() || '');
 
     const res = await fetch('/analyze-comparison', { method: 'POST', body: formData });
     let data;
@@ -337,6 +338,7 @@ $('analyzeBtn').addEventListener('click', async () => {
     formData.append('palm', compressed, 'palm.jpg');
     formData.append('hand', selectedHand);
     formData.append('theme', selectedTheme);
+    formData.append('customQuestion', $('customQuestion')?.value?.trim() || '');
 
     const res = await fetch('/analyze', { method: 'POST', body: formData });
 
@@ -452,6 +454,24 @@ function renderResult(data) {
 
   // Life advice
   setText('lifeAdvice', r.life_advice);
+
+  // Custom question answer
+  const cq = r.custom_question;
+  const cqCard = $('customQCard');
+  if (cq?.answer) {
+    setText('customQTitle', `「${cq.question}」への答え`);
+    setText('customQAnswer', cq.answer);
+    const timingEl = $('customQTiming');
+    if (cq.timing_hint) {
+      timingEl.textContent = `⏰ タイミングの示唆: ${cq.timing_hint}`;
+      timingEl.classList.remove('hidden');
+    } else {
+      timingEl.classList.add('hidden');
+    }
+    cqCard.classList.remove('hidden');
+  } else {
+    cqCard.classList.add('hidden');
+  }
 
   // Lucky
   renderLucky(r.lucky);

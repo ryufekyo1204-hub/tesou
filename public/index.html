@@ -154,6 +154,14 @@
         </div>
       </div>
 
+      <!-- カスタム質問 -->
+      <div class="custom-q-wrap">
+        <label class="custom-q-label" for="customQuestion">🎯 特に知りたいこと（任意）</label>
+        <input type="text" id="customQuestion" class="custom-q-input"
+          placeholder="例：就職のタイミングは？ 転職すべき？ 結婚はいつ頃？"
+          maxlength="100" autocomplete="off">
+      </div>
+
       <button class="btn btn-analyze" id="analyzeBtn">
         <span aria-hidden="true">🔮</span>
         <span>手相を鑑定する</span>
@@ -292,6 +300,16 @@
           <h3 class="card-title">人生アドバイス</h3>
         </div>
         <p class="card-body advice-text" id="lifeAdvice"></p>
+      </div>
+
+      <!-- Custom Question Answer -->
+      <div class="card card-custom-q fade-in-up hidden" id="customQCard">
+        <div class="card-header">
+          <span class="card-icon" aria-hidden="true">🎯</span>
+          <h3 class="card-title" id="customQTitle"></h3>
+        </div>
+        <p class="card-body" id="customQAnswer"></p>
+        <p class="custom-q-timing hidden" id="customQTiming"></p>
       </div>
 
       <!-- Lucky -->
