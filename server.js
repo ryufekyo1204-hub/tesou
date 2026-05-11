@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { analyzePalm } from './lib/analyzer.js';
+import { analyzePalm, analyzeComparison } from './lib/analyzer.js';
 import { preprocessPalmImage } from './lib/preprocessor.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,6 +33,7 @@ app.post('/analyze', upload.single('palm'), async (req, res) => {
   }
 
   const userSelectedHand = req.body?.hand || 'unclear';
+  const theme = req.body?.theme || 'overall';
 
   try {
     // 画像前処理: コントラスト強調・シャープニングで手相の線を見やすくする
@@ -40,11 +41,49 @@ app.post('/analyze', upload.single('palm'), async (req, res) => {
     const base64 = processedBuffer.toString('base64');
     const mediaType = processedType || req.file.mimetype;
 
-    const result = await analyzePalm(base64, mediaType, userSelectedHand);
+    const result = await analyzePalm(base64, mediaType, userSelectedHand, theme);
     res.json(result);
   } catch (err) {
     console.error('Analysis error:', err.message);
 
+    if (err.message.includes('rate_limit') || err.message.includes('overloaded')) {
+      return res.status(429).json({ error: true, message: 'サービスが混み合っています。少し待ってから再試行してください。' });
+    }
+    if (err.message.includes('タイムアウト')) {
+      return res.status(504).json({ error: true, message: err.message });
+    }
+    res.status(500).json({ error: true, message: err.message || '分析中にエラーが発生しました。再度お試しください。' });
+  }
+});
+
+// ===== 両手比較エンドポイント =====
+const compUpload = upload.fields([
+  { name: 'right_palm', maxCount: 1 },
+  { name: 'left_palm', maxCount: 1 },
+]);
+
+app.post('/analyze-comparison', compUpload, async (req, res) => {
+  const rightFile = req.files?.right_palm?.[0];
+  const leftFile = req.files?.left_palm?.[0];
+  if (!rightFile || !leftFile) {
+    return res.status(400).json({ error: true, message: '右手と左手の両方の画像をアップロードしてください' });
+  }
+
+  const theme = req.body?.theme || 'overall';
+
+  try {
+    const [rPre, lPre] = await Promise.all([
+      preprocessPalmImage(rightFile.buffer),
+      preprocessPalmImage(leftFile.buffer),
+    ]);
+    const result = await analyzeComparison(
+      rPre.buffer.toString('base64'), rPre.mediaType || rightFile.mimetype,
+      lPre.buffer.toString('base64'), lPre.mediaType || leftFile.mimetype,
+      theme
+    );
+    res.json(result);
+  } catch (err) {
+    console.error('Comparison error:', err.message);
     if (err.message.includes('rate_limit') || err.message.includes('overloaded')) {
       return res.status(429).json({ error: true, message: 'サービスが混み合っています。少し待ってから再試行してください。' });
     }

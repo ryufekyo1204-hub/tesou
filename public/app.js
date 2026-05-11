@@ -5,14 +5,20 @@
 // ============================================================
 let selectedFile = null;
 let selectedHand = 'right';
-let currentPreviewUrl = null; // Object URL リーク防止
+let selectedTheme = 'overall';
+let currentMode = 'single'; // 'single' | 'comparison'
+let currentPreviewUrl = null;
+let compRightFile = null;
+let compLeftFile = null;
+let compRightUrl = null;
+let compLeftUrl = null;
 
 // ============================================================
 // DOM helpers
 // ============================================================
 const $ = id => document.getElementById(id);
 
-const SECTIONS = ['uploadSection', 'previewSection', 'loadingSection', 'resultSection', 'errorSection'];
+const SECTIONS = ['uploadSection', 'previewSection', 'loadingSection', 'resultSection', 'compResultSection', 'errorSection'];
 
 function showSection(name) {
   SECTIONS.forEach(id => {
@@ -71,6 +77,86 @@ $('cameraInput').addEventListener('change', e => handleFile(e.target.files[0]));
 $('galleryInput').addEventListener('change', e => handleFile(e.target.files[0]));
 
 // ============================================================
+// Mode tabs
+// ============================================================
+document.querySelectorAll('.mode-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentMode = btn.dataset.mode;
+    document.querySelectorAll('.mode-tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === currentMode);
+      b.setAttribute('aria-selected', String(b.dataset.mode === currentMode));
+    });
+    const isSingle = currentMode === 'single';
+    $('singleUploadBtns').classList.toggle('hidden', !isSingle);
+    $('compUploadGrid').classList.toggle('hidden', isSingle);
+    $('compAnalyzeBtn').classList.add('hidden');
+    compRightFile = compLeftFile = null;
+    resetCompSlot('compRightThumbArea', 'rightPalmInput');
+    resetCompSlot('compLeftThumbArea', 'leftPalmInput');
+  });
+});
+
+function resetCompSlot(areaId, inputId) {
+  const area = $(areaId);
+  if (!area) return;
+  area.innerHTML = `<label class="comp-upload-btn" for="${inputId}">📸 アップロード</label>
+    <input type="file" id="${inputId}" accept="image/*" hidden>`;
+  reattachCompInput(inputId);
+}
+
+function reattachCompInput(inputId) {
+  const el = $(inputId);
+  if (!el) return;
+  el.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file?.type.startsWith('image/')) return;
+    if (inputId === 'rightPalmInput') handleCompFile('right', file);
+    else handleCompFile('left', file);
+  });
+}
+
+function handleCompFile(side, file) {
+  if (side === 'right') {
+    if (compRightUrl) URL.revokeObjectURL(compRightUrl);
+    compRightFile = file;
+    compRightUrl = URL.createObjectURL(file);
+    $('compRightSlot').classList.add('has-image');
+    const area = $('compRightThumbArea');
+    area.innerHTML = `<img src="${compRightUrl}" class="comp-thumb" alt="右手">
+      <label class="comp-upload-btn" for="rightPalmInput" style="font-size:0.7rem">📸 撮り直す</label>
+      <input type="file" id="rightPalmInput" accept="image/*" hidden>`;
+    reattachCompInput('rightPalmInput');
+  } else {
+    if (compLeftUrl) URL.revokeObjectURL(compLeftUrl);
+    compLeftFile = file;
+    compLeftUrl = URL.createObjectURL(file);
+    $('compLeftSlot').classList.add('has-image');
+    const area = $('compLeftThumbArea');
+    area.innerHTML = `<img src="${compLeftUrl}" class="comp-thumb" alt="左手">
+      <label class="comp-upload-btn" for="leftPalmInput" style="font-size:0.7rem">📸 撮り直す</label>
+      <input type="file" id="leftPalmInput" accept="image/*" hidden>`;
+    reattachCompInput('leftPalmInput');
+  }
+  $('compAnalyzeBtn').classList.toggle('hidden', !(compRightFile && compLeftFile));
+}
+
+reattachCompInput('rightPalmInput');
+reattachCompInput('leftPalmInput');
+
+// ============================================================
+// Theme selector
+// ============================================================
+document.querySelectorAll('.theme-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectedTheme = btn.dataset.theme;
+    document.querySelectorAll('.theme-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.theme === selectedTheme);
+      b.setAttribute('aria-pressed', String(b.dataset.theme === selectedTheme));
+    });
+  });
+});
+
+// ============================================================
 // Hand selector
 // ============================================================
 const HAND_HINTS = {
@@ -110,6 +196,49 @@ function resetToUpload() {
 $('retakeFromPreview').addEventListener('click', resetToUpload);
 $('retakeBtn2').addEventListener('click', resetToUpload);
 $('errorRetryBtn').addEventListener('click', resetToUpload);
+$('compRetakeBtn').addEventListener('click', resetToUpload);
+
+// ============================================================
+// Comparison Analyze button
+// ============================================================
+$('compAnalyzeBtn').addEventListener('click', async () => {
+  if (!compRightFile || !compLeftFile) return;
+  $('compAnalyzeBtn').disabled = true;
+  showSection('loadingSection');
+  startLoadingAnimation();
+
+  try {
+    const [rightComp, leftComp] = await Promise.all([
+      compressImage(compRightFile),
+      compressImage(compLeftFile),
+    ]);
+    const formData = new FormData();
+    formData.append('right_palm', rightComp, 'right.jpg');
+    formData.append('left_palm', leftComp, 'left.jpg');
+    formData.append('theme', selectedTheme);
+
+    const res = await fetch('/analyze-comparison', { method: 'POST', body: formData });
+    let data;
+    try { data = await res.json(); } catch {
+      stopLoadingAnimation();
+      showError(res.status === 413 ? '画像ファイルが大きすぎます。' : 'サーバーエラーが発生しました。');
+      return;
+    }
+    stopLoadingAnimation();
+    if (!res.ok || data.error) { showError(data.message || '分析に失敗しました。'); return; }
+    renderComparisonResult(data);
+    showSection('compResultSection');
+    requestAnimationFrame(() => {
+      const title = document.querySelector('#compResultSection .result-title');
+      if (title) { title.setAttribute('tabindex', '-1'); title.focus(); }
+    });
+  } catch {
+    stopLoadingAnimation();
+    showError('通信エラーが発生しました。ネットワーク接続を確認してください。');
+  } finally {
+    $('compAnalyzeBtn').disabled = false;
+  }
+});
 
 // ============================================================
 // Share
@@ -207,6 +336,7 @@ $('analyzeBtn').addEventListener('click', async () => {
     const formData = new FormData();
     formData.append('palm', compressed, 'palm.jpg');
     formData.append('hand', selectedHand);
+    formData.append('theme', selectedTheme);
 
     const res = await fetch('/analyze', { method: 'POST', body: formData });
 
@@ -315,8 +445,8 @@ function renderResult(data) {
 
   // Annual fortune
   const af = r.annual_fortune || {};
-  setText('fortune2025', af['2025']);
   setText('fortune2026', af['2026']);
+  setText('fortune2027', af['2027']);
   const focusEl = $('focusArea');
   focusEl.textContent = af.focus_area ? `注目エリア：${af.focus_area}` : '';
 
@@ -464,6 +594,58 @@ function renderLucky(lucky) {
       <div class="lucky-keyword-value">${escHtml(lucky.keyword)}</div>`;
   }
 }
+
+// ============================================================
+// Render comparison result
+// ============================================================
+function renderComparisonResult(data) {
+  const { comparison: c } = data;
+  if (!c) { showError('比較鑑定結果の取得に失敗しました。'); return; }
+
+  setText('compRightSummary', c.right_summary);
+  setText('compLeftSummary', c.left_summary);
+  setText('compConsistency', c.consistency);
+  setText('compGap', c.gap);
+  setText('compGrowth', c.growth_opportunity);
+  setText('compOverallInsight', c.overall_insight);
+  setText('compFortune2026', c.fortune_2026);
+  setText('compFortune2027', c.fortune_2027);
+  setText('compLifeAdvice', c.life_advice);
+  setText('compClosing', c.closing);
+
+  // Lucky
+  const lucky = c.lucky || {};
+  const grid = $('compLuckyGrid');
+  grid.innerHTML = '';
+  [
+    { label: '🎨 ラッキーカラー', value: lucky.color },
+    { label: '🔢 ラッキーナンバー', value: lucky.number },
+  ].forEach(({ label, value }) => {
+    if (!value) return;
+    const div = document.createElement('div');
+    div.className = 'lucky-item';
+    div.innerHTML = `<div class="lucky-label">${label}</div><div class="lucky-value">${escHtml(String(value))}</div>`;
+    grid.appendChild(div);
+  });
+  const kwWrap = $('compLuckyKeyword');
+  kwWrap.innerHTML = lucky.keyword
+    ? `<div class="lucky-keyword-label">🔑 2026年のキーワード</div>
+       <div class="lucky-keyword-value">${escHtml(lucky.keyword)}</div>`
+    : '';
+}
+
+$('compShareBtn').addEventListener('click', async () => {
+  const text = `🤲 AI両手比較手相鑑定を体験しました！\n右手と左手を読み解いて、潜在能力と現在の自分を比較鑑定。\nあなたも試してみて！`;
+  if (navigator.share) {
+    try { await navigator.share({ title: '両手比較手相鑑定', text }); } catch { /* cancelled */ }
+  } else {
+    await navigator.clipboard.writeText(text).catch(() => {});
+    const btn = $('compShareBtn');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<span>✓</span> コピーしました';
+    setTimeout(() => { btn.innerHTML = orig; }, 2000);
+  }
+});
 
 // ============================================================
 // Utilities

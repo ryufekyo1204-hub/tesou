@@ -32,6 +32,13 @@
 
     <!-- ===== UPLOAD SECTION ===== -->
     <section class="section" id="uploadSection" aria-label="手相画像のアップロード">
+
+      <!-- モード切替タブ -->
+      <div class="mode-tabs" role="tablist">
+        <button class="mode-tab active" data-mode="single" role="tab" aria-selected="true">🔮 片手鑑定</button>
+        <button class="mode-tab" data-mode="comparison" role="tab" aria-selected="false">🤲 両手比較</button>
+      </div>
+
       <div class="upload-hero">
         <div class="palm-anim" aria-hidden="true">
           <svg viewBox="0 0 120 160" fill="none" xmlns="http://www.w3.org/2000/svg" class="palm-svg">
@@ -57,7 +64,8 @@
         <p class="upload-desc">AIが生命線・感情線・知能線・運命線など<br>手相を詳細に分析します</p>
       </div>
 
-      <div class="btn-group">
+      <!-- 片手モード: アップロードボタン -->
+      <div class="btn-group" id="singleUploadBtns">
         <label class="btn btn-primary" for="cameraInput" role="button" tabindex="0">
           <span aria-hidden="true">📸</span>
           <span>カメラで撮影</span>
@@ -70,6 +78,28 @@
         </label>
         <input type="file" id="galleryInput" accept="image/*" hidden aria-label="ギャラリーから選択">
       </div>
+
+      <!-- 両手比較モード: 右手・左手スロット -->
+      <div class="comp-upload-grid hidden" id="compUploadGrid">
+        <div class="comp-slot" id="compRightSlot">
+          <div class="comp-slot-label">🤚 右手（現在の手）</div>
+          <div class="comp-thumb-area" id="compRightThumbArea">
+            <label class="comp-upload-btn" for="rightPalmInput">📸 アップロード</label>
+            <input type="file" id="rightPalmInput" accept="image/*" hidden aria-label="右手をアップロード">
+          </div>
+        </div>
+        <div class="comp-slot" id="compLeftSlot">
+          <div class="comp-slot-label">🤚 左手（潜在能力の手）</div>
+          <div class="comp-thumb-area" id="compLeftThumbArea">
+            <label class="comp-upload-btn" for="leftPalmInput">📸 アップロード</label>
+            <input type="file" id="leftPalmInput" accept="image/*" hidden aria-label="左手をアップロード">
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-analyze hidden" id="compAnalyzeBtn">
+        <span aria-hidden="true">🤲</span>
+        <span>両手を比較鑑定する</span>
+      </button>
 
       <div class="tips-card">
         <h3 class="tips-title">✨ 精度を上げるコツ</h3>
@@ -110,6 +140,17 @@
             </button>
           </div>
           <p class="hand-hint" id="handHint">右手：現在・努力・これからの人生を示します</p>
+        </div>
+      </div>
+
+      <!-- テーマ選択 -->
+      <div class="theme-selector">
+        <p class="theme-selector-label">鑑定の重点テーマ</p>
+        <div class="theme-btns">
+          <button class="theme-btn active" data-theme="overall" aria-pressed="true">🔮 総合</button>
+          <button class="theme-btn" data-theme="love" aria-pressed="false">❤️ 恋愛</button>
+          <button class="theme-btn" data-theme="career" aria-pressed="false">💼 仕事</button>
+          <button class="theme-btn" data-theme="health" aria-pressed="false">🌿 健康</button>
         </div>
       </div>
 
@@ -229,16 +270,16 @@
       <div class="card card-fortune fade-in-up">
         <div class="card-header">
           <span class="card-icon" aria-hidden="true">📅</span>
-          <h3 class="card-title">2025〜2026年の運勢</h3>
+          <h3 class="card-title">2026〜2027年の運勢</h3>
         </div>
         <div class="fortune-years">
           <div class="fortune-year-item">
-            <span class="fortune-year-label">2025年</span>
-            <p class="fortune-year-text" id="fortune2025"></p>
-          </div>
-          <div class="fortune-year-item">
             <span class="fortune-year-label">2026年</span>
             <p class="fortune-year-text" id="fortune2026"></p>
+          </div>
+          <div class="fortune-year-item">
+            <span class="fortune-year-label">2027年</span>
+            <p class="fortune-year-text" id="fortune2027"></p>
           </div>
         </div>
         <div class="focus-area-badge" id="focusArea"></div>
@@ -283,6 +324,129 @@
         <p class="disclaimer-text">
           ⚠️ この鑑定はAIによるエンターテインメント・自己洞察目的のコンテンツです。<br>
           医療診断・投資・法的判断の代替として使用しないでください。<br>
+          <small>※ 画像はAnthropicのAPIを経由して処理されます。サーバーには保存されません。</small>
+        </p>
+      </div>
+    </section>
+
+    <!-- ===== COMPARISON RESULT SECTION ===== -->
+    <section class="section hidden" id="compResultSection" aria-label="両手比較鑑定結果">
+
+      <div class="result-header">
+        <div class="result-title-area">
+          <h2 class="result-title">🤲 両手比較鑑定</h2>
+          <div class="result-meta">右手（現在）× 左手（潜在能力）の統合分析</div>
+        </div>
+      </div>
+
+      <!-- 両手サマリー -->
+      <div class="comp-hands-grid">
+        <div class="card comp-hand-card fade-in-up">
+          <div class="card-header">
+            <span class="card-icon">🤚</span>
+            <h3 class="card-title">右手（現在の手）</h3>
+          </div>
+          <p class="card-body" id="compRightSummary"></p>
+        </div>
+        <div class="card comp-hand-card fade-in-up" style="animation-delay:0.1s">
+          <div class="card-header">
+            <span class="card-icon">🤚</span>
+            <h3 class="card-title">左手（潜在能力の手）</h3>
+          </div>
+          <p class="card-body" id="compLeftSummary"></p>
+        </div>
+      </div>
+
+      <!-- 一致・ズレ -->
+      <div class="card fade-in-up" style="animation-delay:0.15s">
+        <div class="card-header">
+          <span class="card-icon">⚖️</span>
+          <h3 class="card-title">両手の一致とズレ</h3>
+        </div>
+        <div class="comp-diff">
+          <div class="comp-diff-item comp-match">
+            <div class="comp-diff-label">✅ 一致（既に開花）</div>
+            <p class="comp-diff-text" id="compConsistency"></p>
+          </div>
+          <div class="comp-diff-item comp-gap">
+            <div class="comp-diff-label">🌱 ズレ（伸びしろ）</div>
+            <p class="comp-diff-text" id="compGap"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 成長チャンス -->
+      <div class="card fade-in-up" style="animation-delay:0.2s">
+        <div class="card-header">
+          <span class="card-icon">🚀</span>
+          <h3 class="card-title">最大の成長チャンス</h3>
+        </div>
+        <p class="card-body" id="compGrowth"></p>
+      </div>
+
+      <!-- 総合洞察 -->
+      <div class="card card-opening fade-in-up" style="animation-delay:0.25s">
+        <div class="card-header">
+          <span class="card-icon">🔮</span>
+          <h3 class="card-title">両手からの総合洞察</h3>
+        </div>
+        <p class="opening-text" id="compOverallInsight"></p>
+      </div>
+
+      <!-- 運勢 -->
+      <div class="card card-fortune fade-in-up" style="animation-delay:0.3s">
+        <div class="card-header">
+          <span class="card-icon">📅</span>
+          <h3 class="card-title">2026〜2027年の展望</h3>
+        </div>
+        <div class="fortune-years">
+          <div class="fortune-year-item">
+            <span class="fortune-year-label">2026年</span>
+            <p class="fortune-year-text" id="compFortune2026"></p>
+          </div>
+          <div class="fortune-year-item">
+            <span class="fortune-year-label">2027年</span>
+            <p class="fortune-year-text" id="compFortune2027"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- アドバイス -->
+      <div class="card card-advice fade-in-up" style="animation-delay:0.35s">
+        <div class="card-header">
+          <span class="card-icon">💫</span>
+          <h3 class="card-title">人生アドバイス</h3>
+        </div>
+        <p class="card-body advice-text" id="compLifeAdvice"></p>
+      </div>
+
+      <!-- ラッキー -->
+      <div class="card card-lucky fade-in-up" style="animation-delay:0.4s">
+        <div class="card-header">
+          <span class="card-icon">🍀</span>
+          <h3 class="card-title">あなたのラッキー</h3>
+        </div>
+        <div class="lucky-grid" id="compLuckyGrid"></div>
+        <div class="lucky-keyword-wrap" id="compLuckyKeyword"></div>
+      </div>
+
+      <!-- 締め -->
+      <div class="card card-closing fade-in-up" style="animation-delay:0.45s">
+        <p class="closing-text" id="compClosing"></p>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn btn-outline" id="compRetakeBtn">
+          <span aria-hidden="true">🔄</span> もう一度鑑定する
+        </button>
+        <button class="btn btn-share" id="compShareBtn">
+          <span aria-hidden="true">📤</span> 結果をシェア
+        </button>
+      </div>
+
+      <div class="disclaimer-box">
+        <p class="disclaimer-text">
+          ⚠️ この鑑定はAIによるエンターテインメント・自己洞察目的のコンテンツです。<br>
           <small>※ 画像はAnthropicのAPIを経由して処理されます。サーバーには保存されません。</small>
         </p>
       </div>

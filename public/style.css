@@ -474,6 +474,75 @@ body {
   white-space: pre-line; max-width: 320px;
 }
 
+/* ---- Mode Tabs ---- */
+.mode-tabs {
+  display: flex; gap: 8px; margin-bottom: 20px;
+}
+.mode-tab {
+  flex: 1; padding: 10px 8px; border-radius: var(--r-md);
+  border: 1.5px solid var(--border); background: var(--surface);
+  color: var(--text-dim); font-size: 0.82rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+}
+.mode-tab.active {
+  background: linear-gradient(135deg, var(--purple), var(--purple-dim));
+  border-color: var(--purple-lt); color: #fff;
+  box-shadow: var(--shadow-glow);
+}
+
+/* ---- Theme Selector ---- */
+.theme-selector { margin: 16px 0; }
+.theme-selector-label {
+  font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px;
+  font-weight: 600; letter-spacing: 0.05em;
+}
+.theme-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.theme-btn {
+  padding: 8px 4px; border-radius: var(--r-sm);
+  border: 1.5px solid var(--border); background: var(--surface);
+  color: var(--text-dim); font-size: 0.75rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.theme-btn.active {
+  background: rgba(167,139,250,0.15); border-color: var(--purple-lt);
+  color: var(--purple-lt);
+}
+
+/* ---- Comparison Upload ---- */
+.comp-upload-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;
+}
+.comp-slot {
+  border: 1.5px dashed var(--border); border-radius: var(--r-md);
+  padding: 14px 10px; text-align: center; transition: border-color 0.2s;
+}
+.comp-slot.has-image { border-style: solid; border-color: var(--purple-lt); }
+.comp-slot-label {
+  font-size: 0.72rem; font-weight: 700; color: var(--text-muted);
+  margin-bottom: 10px; letter-spacing: 0.04em;
+}
+.comp-thumb-area { position: relative; }
+.comp-upload-btn {
+  display: inline-block; padding: 8px 12px; border-radius: var(--r-sm);
+  background: var(--surface2); color: var(--text-dim);
+  font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border); transition: all 0.2s;
+}
+.comp-thumb {
+  width: 100%; aspect-ratio: 1; object-fit: cover;
+  border-radius: var(--r-sm); display: block; margin-bottom: 6px;
+}
+
+/* ---- Comparison Result ---- */
+.comp-hands-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.comp-hand-card { margin-bottom: 0; }
+.comp-diff { display: flex; flex-direction: column; gap: 12px; }
+.comp-diff-item { border-radius: var(--r-sm); padding: 12px; }
+.comp-match { background: rgba(74,222,128,0.07); border: 1px solid rgba(74,222,128,0.2); }
+.comp-gap   { background: rgba(251,191,36,0.07);  border: 1px solid rgba(251,191,36,0.2); }
+.comp-diff-label { font-size: 0.72rem; font-weight: 700; margin-bottom: 6px; color: var(--text-muted); }
+.comp-diff-text  { font-size: 0.85rem; color: var(--text); line-height: 1.65; }
+
 /* ---- Animations ---- */
 .fade-in-up { animation: fadeInUp 0.5s ease forwards; opacity: 0; }
 @keyframes fadeInUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
