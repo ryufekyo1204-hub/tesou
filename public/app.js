@@ -226,6 +226,22 @@ $('errorRetryBtn').addEventListener('click', resetToUpload);
 $('compRetakeBtn').addEventListener('click', resetToUpload);
 
 // ============================================================
+// Job polling helper
+// ============================================================
+async function pollResult(jobId, maxSeconds = 180) {
+  const deadline = Date.now() + maxSeconds * 1000;
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, 2000));
+    const res = await fetch(`/result/${jobId}`);
+    if (res.status === 202) continue; // まだ処理中
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.message || '分析に失敗しました。');
+    return data;
+  }
+  throw new Error('分析がタイムアウトしました。もう一度お試しください。');
+}
+
+// ============================================================
 // Comparison Analyze button
 // ============================================================
 $('compAnalyzeBtn').addEventListener('click', async () => {
@@ -247,24 +263,30 @@ $('compAnalyzeBtn').addEventListener('click', async () => {
     formData.append('userAge', userAge);
     formData.append('userGender', userGender);
 
-    const res = await fetch('/analyze-comparison', { method: 'POST', body: formData });
-    let data;
-    try { data = await res.json(); } catch {
+    const startRes = await fetch('/analyze-comparison', { method: 'POST', body: formData });
+    let startData;
+    try { startData = await startRes.json(); } catch {
       stopLoadingAnimation();
-      showError(res.status === 413 ? '画像ファイルが大きすぎます。' : 'サーバーエラーが発生しました。');
+      showError(startRes.status === 413 ? '画像ファイルが大きすぎます。' : 'サーバーエラーが発生しました。');
       return;
     }
+    if (!startRes.ok || startData.error) {
+      stopLoadingAnimation();
+      showError(startData.message || '分析の開始に失敗しました。');
+      return;
+    }
+
+    const data = await pollResult(startData.jobId);
     stopLoadingAnimation();
-    if (!res.ok || data.error) { showError(data.message || '分析に失敗しました。'); return; }
     renderComparisonResult(data);
     showSection('compResultSection');
     requestAnimationFrame(() => {
       const title = document.querySelector('#compResultSection .result-title');
       if (title) { title.setAttribute('tabindex', '-1'); title.focus(); }
     });
-  } catch {
+  } catch (err) {
     stopLoadingAnimation();
-    showError('通信エラーが発生しました。ネットワーク接続を確認してください。');
+    showError(err.message || '通信エラーが発生しました。ネットワーク接続を確認してください。');
   } finally {
     $('compAnalyzeBtn').disabled = false;
   }
@@ -371,26 +393,25 @@ $('analyzeBtn').addEventListener('click', async () => {
     formData.append('userAge', userAge);
     formData.append('userGender', userGender);
 
-    const res = await fetch('/analyze', { method: 'POST', body: formData });
-
-    let data;
+    const startRes = await fetch('/analyze', { method: 'POST', body: formData });
+    let startData;
     try {
-      data = await res.json();
+      startData = await startRes.json();
     } catch {
-      // サーバーがHTMLエラーページを返した場合（MulterError等）
       stopLoadingAnimation();
-      showError(res.status === 413
+      showError(startRes.status === 413
         ? '画像ファイルが大きすぎます（最大20MB）。別の画像でお試しください。'
         : 'サーバーエラーが発生しました。再度お試しください。');
       return;
     }
-
-    stopLoadingAnimation();
-
-    if (!res.ok || data.error) {
-      showError(data.message || '分析に失敗しました。再度お試しください。');
+    if (!startRes.ok || startData.error) {
+      stopLoadingAnimation();
+      showError(startData.message || '分析の開始に失敗しました。再度お試しください。');
       return;
     }
+
+    const data = await pollResult(startData.jobId);
+    stopLoadingAnimation();
 
     lastResultData = data;
     renderResult(data);
@@ -401,9 +422,9 @@ $('analyzeBtn').addEventListener('click', async () => {
       const title = document.querySelector('#resultSection .result-title');
       if (title) { title.setAttribute('tabindex', '-1'); title.focus(); }
     });
-  } catch {
+  } catch (err) {
     stopLoadingAnimation();
-    showError('通信エラーが発生しました。ネットワーク接続を確認してください。');
+    showError(err.message || '通信エラーが発生しました。ネットワーク接続を確認してください。');
   } finally {
     $('analyzeBtn').disabled = false;
   }
